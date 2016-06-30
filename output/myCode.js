@@ -66,9 +66,24 @@
 
 	var gridHeight = 20;
 	var gridWidth = 20;
-	var initialColors = ["red", "purple", "orange", "blue", "green", "black", "brown", "pink"];
+	var initialColors = ["#4f1a41", // purple
+	"#58bee3", // light blue
+	"#202327", // dark grey
+	"#c0c0c0", // light grey
+	"#6800ad", // vibrant purple
+	"#f73a65", // bright pink
+	"#2c1024" // dark purple
+	/*"red",
+	"purple",
+	"orange",
+	"blue",
+	"green",
+	"black",
+	"brown",
+	"pink"*/
+	];
 	var rippleR = 5;
-	var fps = 20;
+	var fps = 10;
 
 	var Grid = function (_React$Component) {
 	    _inherits(Grid, _React$Component);
@@ -88,76 +103,8 @@
 	        _this.ripple = _this.ripple.bind(_this);
 	        return _this;
 	    }
-	    // Dispatch ripple action to relevant surrounding squares when a square has been clicked
-
 
 	    _createClass(Grid, [{
-	        key: "handleClick",
-	        value: function handleClick(event) {
-	            var origin = event.target.dataset;
-
-	            this.setState({
-	                color: event.target.style.backgroundColor,
-	                refs: this.getAllRefs(parseInt(origin.x), parseInt(origin.y)),
-	                request: requestAnimationFrame(this.ripple)
-	            });
-	        }
-	    }, {
-	        key: "getAllRefs",
-	        value: function getAllRefs(x, y) {
-	            var allRefs = [];
-	            for (var s = 1; s <= rippleR; s++) {
-	                var step = {};
-	                var xmin = x - s;
-	                var xmax = x + s;
-	                var ymin = y - s;
-	                var ymax = y + s;
-
-	                for (var i = xmin; i <= xmax; i++) {
-	                    if (this.refs.hasOwnProperty(i + "_" + ymin)) step[i + "_" + ymin] = "";
-	                    if (this.refs.hasOwnProperty(i + "_" + ymax)) step[i + "_" + ymax] = "";
-	                }
-	                for (i = ymin + 1; i < ymax; i++) {
-	                    if (this.refs.hasOwnProperty(xmin + "_" + i)) step[xmin + "_" + i] = "";
-	                    if (this.refs.hasOwnProperty(xmax + "_" + i)) step[xmax + "_" + i] = "";
-	                }
-	                console.log(s);
-	                console.log(step);
-	                allRefs.push(step);
-	            }
-	            return allRefs;
-	        }
-	    }, {
-	        key: "ripple",
-	        value: function ripple() {
-	            //set new color for ref
-	            var curstep = this.state.refs[this.state.step];
-	            console.log(curstep);
-	            for (var ref in curstep) {
-	                if (curstep.hasOwnProperty(ref)) {
-	                    this.refs[ref].changeColor(this.state.color);
-	                }
-	            }
-
-	            // loop to animate
-	            if (this.state.step < rippleR) {
-	                var myGrid = this;
-	                // use setTimeout to manage speed of animation
-	                setTimeout(function () {
-	                    myGrid.setState({
-	                        step: myGrid.state.step + 1,
-	                        request: window.requestAnimationFrame(myGrid.ripple.bind(myGrid))
-	                    });
-	                }, 1000 / fps);
-	            } else {
-	                cancelAnimationFrame(this.state.request);
-	                this.setState({
-	                    step: 0,
-	                    refs: []
-	                });
-	            }
-	        }
-	    }, {
 	        key: "getGrid",
 	        value: function getGrid() {
 	            var rows = [],
@@ -165,7 +112,7 @@
 	            for (var i = 0; i < gridHeight; i++) {
 	                var cells = [];
 	                for (var j = 0; j < gridWidth; j++) {
-	                    if (this.state.color != "") color = this.state.color;else color = initialColors[(j + i) % 8];
+	                    if (this.state.color != "") color = this.state.color;else color = initialColors[(i + j) % initialColors.length];
 	                    cells.push(_react2.default.createElement(Square, { key: j + ',' + i,
 	                        ref: j + '_' + i,
 	                        dataX: j,
@@ -185,6 +132,113 @@
 	                { key: "tbody" },
 	                rows
 	            );
+	        }
+	        // Dispatch ripple action to relevant surrounding squares when a square has been clicked
+
+	    }, {
+	        key: "handleClick",
+	        value: function handleClick(event) {
+	            var origin = event.target.dataset;
+
+	            this.setState({
+	                color: event.target.style.backgroundColor,
+	                refs: this.getAllRefs(parseInt(origin.x), parseInt(origin.y)),
+	                request: requestAnimationFrame(this.ripple)
+	            });
+	        }
+	    }, {
+	        key: "getAllRefs",
+	        value: function getAllRefs(x, y) {
+	            var allRefs = [];
+	            for (var s = 1; s <= rippleR; s++) {
+	                //allRefs.push(this.getSquareRipple(x, y, s));
+	                allRefs.push(this.getCircleRipple(x, y, s));
+	            }
+	            return allRefs;
+	        }
+	    }, {
+	        key: "ripple",
+	        value: function ripple() {
+	            //set new color for ref
+	            var curstep = this.state.refs[this.state.step];
+	            for (var ref in curstep) {
+	                if (curstep.hasOwnProperty(ref)) {
+	                    this.refs[ref].changeColor(this.state.color);
+	                }
+	            }
+
+	            // loop to animate (triggers step+1 so stop at step=rippleR-2)
+	            if (this.state.step < rippleR - 1) {
+	                var myGrid = this;
+	                // use setTimeout to manage speed of animation
+	                setTimeout(function () {
+	                    myGrid.setState({
+	                        step: myGrid.state.step + 1,
+	                        request: window.requestAnimationFrame(myGrid.ripple.bind(myGrid))
+	                    });
+	                }, 1000 / fps);
+	            } else {
+	                cancelAnimationFrame(this.state.request);
+	                this.setState({
+	                    step: 0,
+	                    refs: []
+	                });
+	            }
+	        }
+	    }, {
+	        key: "getSquareRipple",
+	        value: function getSquareRipple(x, y, s) {
+	            var step = {};
+	            var xmin = x - s;
+	            var xmax = x + s;
+	            var ymin = y - s;
+	            var ymax = y + s;
+
+	            for (var i = xmin; i <= xmax; i++) {
+	                step = this.refPush(i + "_" + ymin, step);
+	                step = this.refPush(i + "_" + ymax, step);
+	            }
+	            for (i = ymin + 1; i < ymax; i++) {
+	                step = this.refPush(xmin + "_" + i, step);
+	                step = this.refPush(xmax + "_" + i, step);
+	            }
+	            return step;
+	        }
+	    }, {
+	        key: "getCircleRipple",
+	        value: function getCircleRipple(x_center, y_center, r) {
+	            var step = {},
+	                x = 0,
+	                y = r,
+	                d = r - 1;
+	            while (y >= x) {
+	                this.refPush(x_center + x + '_' + (y_center + y), step);
+	                this.refPush(x_center + y + '_' + (y_center + x), step);
+	                this.refPush(x_center - x + '_' + (y_center + y), step);
+	                this.refPush(x_center - y + '_' + (y_center + x), step);
+	                this.refPush(x_center + x + '_' + (y_center - y), step);
+	                this.refPush(x_center + y + '_' + (y_center - x), step);
+	                this.refPush(x_center - x + '_' + (y_center - y), step);
+	                this.refPush(x_center - y + '_' + (y_center - x), step);
+	                if (d >= 2 * x) {
+	                    d = d - 2 * x - 1;
+	                    x++;
+	                } else if (d < 2 * (r - y)) {
+	                    d = d + 2 * y - 1;
+	                    y--;
+	                } else {
+	                    d = d + 2 * (y - x - 1);
+	                    y--;
+	                    x++;
+	                }
+	            }
+	            return step;
+	        }
+	    }, {
+	        key: "refPush",
+	        value: function refPush(ref, obj) {
+	            if (this.refs.hasOwnProperty(ref)) obj[ref] = "";
+	            return obj;
 	        }
 	    }, {
 	        key: "render",
